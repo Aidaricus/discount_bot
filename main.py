@@ -1,5 +1,7 @@
+import functools
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
 import logging
 
 import scrapper
@@ -7,30 +9,52 @@ from keyboards import get_paginator_keyboard, get_sites_keyboard, get_retry_keyb
 from config import TOKEN
 from scrapper import urls
 
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 def start(update : Update, context : CallbackContext):
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text = "Приветствую в боте поиска скидок!🤑\n"
-                                    f"Доступные сайты: {''.join(urls.keys())} \nЧтобы получить список - /discount\n"
+                                    f"Доступные сайты: {' '.join(urls.keys())} \n"
+                                    f"Чтобы получить список скидок - /discount\n"
                                     "Как работает бот? - /help"
                              )
 
 def discount(update : Update, context : CallbackContext):
+    user_data = context.user_data
+    logging.info("trying delete 10 messages after going to main menu")
+    try:
+        # Удаляем 10 сообщений для paginator'a
+        for i in range(10):
+            context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=user_data['message_ids']['message_ids'][i]
+            )
+        # Удаляем сообщение для reply_markup
+        context.bot.delete_message(update.effective_chat.id, user_data['message_ids']['last_message_id'])
+        logging.info("user_data['message_ids'] is defined")
+    except:
+        logging.info("user_data['message_ids'] already deleted")
+        pass
+
     sites = list(urls.keys())
-    print(sites)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text="Приветствую ценителей денег!🤑\n"
-                                  "Доступные сайты: asos.com\n Чтобы получить список скидок, выберите сайт с которого хотите получить информацию",
+                                  f"Доступные сайты: {' '.join(urls.keys())}\n. Чтобы получить список скидок, выберите сайт с которого хотите получить информацию",
                              reply_markup = get_sites_keyboard(sites)
                              )
 
 def help(update : Update, context : CallbackContext):
-    context.bot.send_message(chat_id = update.effective_chat.id,
-                             text = "Вы серьезно? Пока только одна функция, что непонятного в том чтобы просто нажать "
-                                    "/discount???")
+    context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = "<b>О боте:</b>\n"
+               " <b><i>DiscountBot</i></b> - это бот который собирает данные о скидочных товарах с популярных сайтов одежды. Выводит их название цены и ссылку на них. \n\n"
+               "<b>/discount</b> - основная функция бота. Бот выводит сообщения с информацией о товарах. Так как товаров может быть много, у бота есть удобный paginator"
+               ", c помощью него вы можете листать этот список. Вся информация получается мгновенно из сайта. Используется технология веб-скраппинга, "
+               "все цены актуальные на момент произведения скраппинга."
+        ,
+        parse_mode = ParseMode.HTML
+    )
 
 def send_list_content(update : Update, context : CallbackContext, site):
     content = scrapper.scrap(site)
@@ -42,13 +66,14 @@ def send_list_content(update : Update, context : CallbackContext, site):
             reply_markup = get_retry_keyboard()
         )
     else:
-        logging.info(f"scrapper found {len(content['content_list'])} products in file content/")
+        user_data = context.user_data
+
+        logging.info(f"scrapper found {len(content['content_list'])} products in file content")
 
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f'Показываю список продуктов со следующим фильтром: {content["content_title"]}. '
                                       f'Вы можете листать список с помощью клавиатуры')
 
-        user_data = context.user_data
         user_data['page'] = 1
         user_data['content'] = content
 
@@ -60,8 +85,10 @@ def send_list_content(update : Update, context : CallbackContext, site):
                 context.bot.send_message(
                     chat_id = update.effective_chat.id,
                     text=f'{product["title"]}\n'
-                         f'{product["price"]}\n'
-                         f'{product["link"]}'
+                         f'<s>{product["old_price"]}</s>. Новая цена: <b>{product["new_price"]}</b>\n'
+                         f'{product["link"]}',
+                    parse_mode = ParseMode.HTML
+
                 ).message_id
             )
 
@@ -86,10 +113,11 @@ def paginator(update : Update, context : CallbackContext):
         product_info = content["content_list"][page * 10 + i]
         context.bot.edit_message_text(
             text = f'{product_info["title"]}\n'
-                   f'{product_info["price"]}\n'
+                   f'<s>{product_info["old_price"]}</s>. Новая цена: <b>{product_info["new_price"]}</b>\n'
                    f'{product_info["link"]}\n',
             chat_id = chat_id,
-            message_id = message_ids['message_ids'][i]
+            message_id = message_ids['message_ids'][i],
+            parse_mode = ParseMode.HTML
         )
 
     context.bot.edit_message_text(
