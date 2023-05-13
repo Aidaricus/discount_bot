@@ -1,13 +1,14 @@
 import functools
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
+from telegram import Bot, Update, ParseMode
 import logging
 
 import scrapper
 from keyboards import get_paginator_keyboard, get_sites_keyboard, get_retry_keyboard
 from config import TOKEN
 from scrapper import urls
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -162,7 +163,6 @@ def discount_keyboard_handler(update : Update, context : CallbackContext, data):
         return send_list_content(update, context, "asos")
     elif data == "choose_site_lamoda":
         return send_list_content(update, context, "lamoda")
-
 
 def main():
     bot = Bot(token = TOKEN)
