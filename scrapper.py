@@ -52,8 +52,6 @@ def scrap_lamoda():
         res = {}
         product_info = r.find("div", class_ = "x-product-card-description")
         product_desc = product_info.find_all('div', class_ = "x-product-card-description__microdata-wrap")
-        # res['old_price'] = product_desc[0].find('span', class_ = "x-product-card-description__price-old _price_k0rqx_8")
-        # res['new_price'] = product_desc[0].find('span', class_ = "x-product-card-description__price-new x-product-card-description__price-WEB8507_price_no_bold _price_k0rqx_8").text
         res['title'] = product_desc[1].text
         price = product_desc[0]
         try:
