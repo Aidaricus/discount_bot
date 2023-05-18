@@ -11,6 +11,13 @@ def get_paginator_keyboard(page, max_pages):
     keyboard.append([InlineKeyboardButton('Вернуться в главное меню↩️', callback_data='paginator_back')])
     return InlineKeyboardMarkup(keyboard)
 
+def get_discount_mode_keyboard():
+    keyboard = [
+        [InlineKeyboardButton('Без фильтров🍃', callback_data='mode-clear-list'),
+         InlineKeyboardButton('По ключевому слову', callback_data='mode-keyword')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
 def get_sites_keyboard(sites):
     keyboard = [[]]
     for site in sites:
